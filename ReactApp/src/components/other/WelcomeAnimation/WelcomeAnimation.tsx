@@ -5,7 +5,6 @@ import generateSteps from "./GenerateString";
 function Welcome() {
   const Text = "Utwórz Swój Własny Test";
 
-
   const steps = generateSteps(Text);
   const [currentText, setCurrentText] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
@@ -47,11 +46,11 @@ function Welcome() {
       ))} </span>)}
       <span 
         style={{
-          opacity: currentText !== "Utwórz Swój Własny Test" ? 0:1,
+          opacity: currentText !== Text? 0:1,
           transition: 'opacity 0.2s',
           transform: 'translateX(-25px) translateY(-10px)',
           height: '1.5em',
-          animation: `blink 0.7s infinite ${Text.split('').length * timeout+100}ms`
+          animation: `blink 0.7s infinite ${Text.split('').length * timeout+250}ms`
         }}
         className="letter"
       >|</span>
