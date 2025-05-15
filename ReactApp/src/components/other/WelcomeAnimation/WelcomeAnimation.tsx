@@ -6,9 +6,10 @@ function Welcome() {
   const Text = "Utwórz Swój Własny Test";
 
   const steps = generateSteps(Text);
+  console.log(steps)
   const [currentText, setCurrentText] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
-  const timeout = 110;
+  const timeout = 120;
   
   useEffect(() => {
     if (currentStep < steps.length) {
@@ -50,7 +51,7 @@ function Welcome() {
           transition: 'opacity 0.2s',
           transform: 'translateX(-25px) translateY(-10px)',
           height: '1.5em',
-          animation: `blink 0.7s infinite ${Text.split('').length * timeout+250}ms`
+          animation: `blink 1s infinite ${Text.split('').length * timeout+250}ms`
         }}
         className="letter"
       >|</span>
@@ -59,3 +60,5 @@ function Welcome() {
 }
 
 export default Welcome;
+
+
