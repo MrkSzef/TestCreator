@@ -1,20 +1,14 @@
-import { useState } from "react";
-import { Button } from "./components/ui/button";
 import "./App.css";
 import Welcome from "./components/other/WelcomeAnimation/WelcomeAnimation";
 import {
     Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "./components/ui/card";
-import { Input } from "./components/ui/input";
-import { Label } from "./components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import JoinForm from "./components/other/JoinForm/JoinForm";
-//Animations to do
+import CreateForm from "./components/other/CreateForm/CreateForm";
+
 
 function App() {
     return (
@@ -48,13 +42,9 @@ function App() {
                                 <CardHeader>
                                     <CardTitle>Utwórz Test</CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-1">
-                                    <Label htmlFor="file">Plik .csv</Label>
-                                    <Input id="file" type="file" />
-                                </CardContent>
-                                <CardFooter>
-                                    <Button>Utwórz</Button>
-                                </CardFooter>
+
+                                <CreateForm></CreateForm>
+
                             </Card>
                         </TabsContent>
                     </Tabs>
