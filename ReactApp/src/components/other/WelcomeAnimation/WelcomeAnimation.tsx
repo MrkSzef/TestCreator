@@ -2,11 +2,11 @@ import { useState, useEffect } from "react";
 import './TypingAnimation.css';
 import generateSteps from "./GenerateString";
 
-function Welcome() {
-  const Text = "Utwórz Swój Własny Test";
+const Text = "Utwórz Swój Własny Test";
+const steps = generateSteps(Text);
 
-  const steps = generateSteps(Text);
-  console.log(steps)
+function Welcome() {
+
   const [currentText, setCurrentText] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
   const timeout = 120;
@@ -16,7 +16,7 @@ function Welcome() {
       const timer = setTimeout(() => {
         setCurrentText(steps[currentStep]);
         setCurrentStep(currentStep + 1);
-      }, timeout);
+      }, timeout + (Math.random() * 80) * (Math.random()>0.75 ? 1:-0.5));
       
       return () => clearTimeout(timer);
     }
