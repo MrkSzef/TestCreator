@@ -3,13 +3,11 @@ from uuid import uuid4
 from random import sample
 
 # Lokalne pliki
-from meneger.user_meneger import User
+
 from meneger.file_meneger import PlikMenadzer
-from datamodel import (ID_Odp_t, ID_Pytanie_t,
-                       UUID_Urzytkownik_t, UUID_Test_t, 
-                       Odp_Klucz_t, Odp_lista_t, Odp_t,
-                       PytanieResponse,
-                       ArkuszResponse, UzytkonikTyp)
+from datamodel import (ID_Odp_t, ID_Pytanie_t, TestWynikResponse, TestZamknietyResponse,
+                       UUID_Test_t, Odp_Klucz_t, Odp_lista_t, Odp_t,
+                       PytanieResponse, ArkuszResponse, Uczen)
 
 class Pytanie:
     def __init__(self, ID: ID_Pytanie_t, tresc: str, odp: Odp_lista_t, odp_praw: Odp_t):
@@ -23,8 +21,7 @@ class Test:
     def __init__(self, ID: UUID_Test_t,
                  pytania_na_arkusz: int,
                  pytania: dict[ID_Pytanie_t, Pytanie],
-                 klucz_odp: Odp_Klucz_t,
-                 uczestnicy: dict[UUID_Urzytkownik_t, Odp_Klucz_t] | None = None):
+                 klucz_odp: Odp_Klucz_t):
         self.ID: UUID_Test_t = ID
         
         self.zamkniety: bool = False
@@ -32,16 +29,20 @@ class Test:
         self.pytanie_na_arkusz: int = pytania_na_arkusz
         self.klucz_odp: Odp_Klucz_t = klucz_odp
         
-        self.uczesticy: dict[UUID_Urzytkownik_t, Odp_Klucz_t] = uczestnicy if uczestnicy else {}
+        self.uczesticy: list[tuple[ Uczen, Odp_Klucz_t]] = []
     
-    def losowy_arkusz(self, uczen: User) -> ArkuszResponse:
-        if uczen.typ != UzytkonikTyp.UCZEN:
-            raise ValueError("Zły typ urzytkownika.", 
-                             f"wymagano: {UzytkonikTyp.UCZEN}",
-                             f"Otrzymano: {uczen.typ}")
-            
-        self.uczesticy[uczen.ID] = {}
-        uczen.testy.append(self.ID)
+    def zamknij(self) -> TestZamknietyResponse:
+        self.zamkniety = True
+        wyniki: list[tuple[Uczen, TestWynikResponse]] = []
+        
+        for uczen, odp in self.uczesticy:    
+            wyniki.append((uczen, self.odp_spraw(odp=odp)))
+        
+        return TestZamknietyResponse(wyniki=wyniki)
+    
+    def losowy_arkusz(self) -> ArkuszResponse:
+        if self.zamkniety:
+            raise ValueError("Test został juz zakońcony")
         
         pytania: list[Pytanie] = sample(list(self.pytania.values()), k=self.pytanie_na_arkusz)
         pytania_response: list[PytanieResponse] = []
@@ -52,13 +53,30 @@ class Test:
         
         return ArkuszResponse(pytania=pytania_response)
     
-    def odp_uzytkownika(self, uczen: User, odp: Odp_Klucz_t) -> None:
-        if uczen.ID not in self.uczesticy:
-            raise ValueError("Podany użytkonik nie jest przypisany do tego testu", f"test_id: {self.ID}",
-                             f"Testy do których użytkownik o id: {uczen.ID}", f"uczen_test: {uczen.testy}")
+    def odp_spraw(self, odp: Odp_Klucz_t) -> TestWynikResponse:
+        punkty: int = 0
+        pytania_bledne: list[ID_Pytanie_t] = []
         
-        self.uczesticy[uczen.ID] = odp
+        for pytanie_id, odp_ucznia in odp.items():
+            odp_praw: Odp_t = self.pytania.get(pytanie_id)
+            if not odp_praw:
+                raise ValueError("Pytanie o podanym id nie istnieje", 
+                                 f"ID: {pytanie_id}")
+                
+            if odp_praw == odp_ucznia:
+                punkty += 1
+            else:
+                pytania_bledne.append(pytanie_id)
+                
+        return TestWynikResponse(punkty=punkty, pytania_bledne=sorted(pytania_bledne))
+    
+    def odp_uzytkownika(self, uczen: Uczen, odp: Odp_Klucz_t) -> TestWynikResponse:
+        if self.zamkniety:
+            raise ValueError("Test został juz zakońcony")
         
+        self.uczesticy.append((uczen, odp))
+        
+        return self.odp_spraw(odp=odp)
         
 class TestMenadzer:
     POPRAWNA_ODP: ID_Odp_t = 0
