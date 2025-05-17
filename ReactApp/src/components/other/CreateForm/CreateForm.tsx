@@ -23,7 +23,7 @@ const formSchema = z.object({
         }),
 });
 
-export default function ProfileForm() {
+export default function CreateForm() {
     const form = useForm<{ file: File | null }>({
         resolver: zodResolver(formSchema),
         defaultValues: {
