@@ -1,0 +1,14 @@
+[
+    {
+        "name": "python",
+        "version": "3.12.6"
+    },
+    {
+        "name": "FastApi",
+        "version": "  0.115.12"
+    },
+    {
+        "name": "React",
+        "version": "19.1"
+    }
+]
