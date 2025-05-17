@@ -5,7 +5,7 @@ from random import sample
 # Lokalne pliki
 
 from meneger.file_meneger import PlikMenadzer
-from datamodel import (ID_Odp_t, ID_Pytanie_t, TestWynikResponse, TestZamknietyResponse,
+from datamodel import (ID_Odp_t, ID_Pytanie_t, Odp_Punkty_t, TestWynikResponse, TestZamknietyResponse,
                        UUID_Test_t, Odp_Klucz_t, Odp_lista_t, Odp_t,
                        PytanieResponse, ArkuszResponse, Uczen)
 
@@ -54,11 +54,11 @@ class Test:
         return ArkuszResponse(pytania=pytania_response)
     
     def odp_spraw(self, odp: Odp_Klucz_t) -> TestWynikResponse:
-        punkty: int = 0
+        punkty: Odp_Punkty_t = 0
         pytania_bledne: list[ID_Pytanie_t] = []
         
         for pytanie_id, odp_ucznia in odp.items():
-            odp_praw: Odp_t = self.pytania.get(pytanie_id)
+            odp_praw: Odp_t = self.pytania.get(pytanie_id).odp_praw
             if not odp_praw:
                 raise ValueError("Pytanie o podanym id nie istnieje", 
                                  f"ID: {pytanie_id}")

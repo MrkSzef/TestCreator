@@ -46,7 +46,7 @@ UUID_Test_t = Annotated[UUID_t, Field(title="ID testu", description="ID testu")]
 UUID_Urzytkownik_t = Annotated[UUID_t, Field(title="ID urzutkownika", description="ID urzutkownika")]
 
 # 2.2.0 - ID
-ID_t = Annotated[int, Field(title="ID numeryczne")]
+ID_t = Annotated[int, Field(title="ID numeryczne", ge=0)]
 ID_Pytanie_t = Annotated[ID_t, Field(title="ID pytania", description="ID pytania")]
 ID_Odp_t = Annotated[ID_t, Field(title="ID odpowiedzi", description="ID odpowiedzi")]
 
@@ -54,6 +54,7 @@ ID_Odp_t = Annotated[ID_t, Field(title="ID odpowiedzi", description="ID odpowied
 Odp_t = Annotated[str, Field(title="Odpowiedź", description="Odpowiedź")]   
 Odp_lista_t = Annotated[list[Odp_t], Field(title="Lista odpowiedzi")]
 Odp_Klucz_t = Annotated[dict[ID_Pytanie_t, Odp_t], Field(title="Klucz odpowiedzi")]
+Odp_Punkty_t = Annotated[int, Field(title="Punkty", ge=0)]
 
 # 2.4.0 Informacje o uztkoniku
 __podstawowa_skladnia = Annotated[str, Field(min_length=3,
@@ -82,7 +83,7 @@ class TestStworzonyResponse(BaseModel):
 
 # 3.3.2 - TestWynikResponse
 class TestWynikResponse(BaseModel):
-    punkty: int
+    punkty: Odp_Punkty_t
     pytania_bledne: list[ID_Pytanie_t]
     
 # 3.3.3 - TestZamknietyResponse

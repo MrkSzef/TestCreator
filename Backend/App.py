@@ -1,6 +1,5 @@
 from __future__ import annotations
 from fastapi import Body, FastAPI, File, Path, UploadFile, status
-from fastapi.encoders import jsonable_encoder
 from typing import Annotated
 import uvicorn
 
@@ -8,7 +7,7 @@ import uvicorn
 from httperror import HTTP_Value_Exception
 from datamodel import (ArkuszResponse, Odp_Klucz_t,
                        TestStworzonyResponse, TestWynikResponse, TestZamknietyResponse, UUID_Test_t,
-                       UUID_Urzytkownik_t, FastApiTags, Uczen,
+                       FastApiTags, Uczen,
                        imie_t, nazwisko_t)
 from meneger.test_meneger import Test, TestMenadzer
 from meneger.file_meneger import PlikMenadzer
@@ -43,7 +42,8 @@ APP = FastAPI(title="TestCreator API",
           response_description="Id utworzonego testu",
           operation_id="Stwórz test")
 def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
-                                                  description="Ilość pytań przypadającza na arkusz")], 
+                                                  description="Ilość pytań przypadającza na arkusz",
+                                                  ge=1)], 
                 plik_csv: Annotated[UploadFile, File(title="Plik csv", 
                                                      description="Plik z pytaniami w formacie csv")]):
     plik_csv: PlikMenadzer = PlikMenadzer(plik_csv)
@@ -60,7 +60,7 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
          status_code=status.HTTP_200_OK,
          tags=[FastApiTags.NAUCZYCIEL],
          response_model=TestZamknietyResponse)
-def test_zamknij(test_id: UUID_Test_t) -> TestZamknietyResponse:
+def test_zamknij(test_id: Annotated[UUID_Test_t, Path()]) -> TestZamknietyResponse:
     try:
         test: Test = TEST_MENADZER.get(test_id)
         wyniki = test.zamknij()
