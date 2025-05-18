@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import axios from "axios";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { CardContent, CardFooter } from "@/components/ui/card";
+import FormData from "form-data";
+import { useNavigate } from "react-router";
 
 const formSchema = z.object({
     file: z
@@ -21,18 +24,44 @@ const formSchema = z.object({
         .refine((file) => file !== null && file.name.endsWith(".csv"), {
             message: "Podaj odpowiedni plik .csv",
         }),
+    liczba_pytan: z.string().refine((val) => !Number.isNaN(parseInt(val)), {
+        message: "Expected number, received a string"
+  }),
 });
 
 export default function CreateForm() {
-    const form = useForm<{ file: File | null }>({
+    let navigate = useNavigate();
+
+    const form = useForm<{ file: File | null; liczba_pytan: string }>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             file: null,
+            liczba_pytan: "1",
         },
     });
 
     function onSubmit(values: z.infer<typeof formSchema>) {
-        console.log(values);
+        // Data to send
+        const formData = new FormData();
+        formData.append("liczba_pytan", values.liczba_pytan);
+        formData.append("plik_csv", values.file, {
+            filename: "pytania.csv",
+            contentType: "text/csv",
+        });
+
+        // Post request
+        axios
+            .post("http://localhost:8000/nauczyciel/test/stworz", formData, {
+                headers: {
+                    accept: "application/json",
+                },
+            })
+            .then((res) => {
+                navigate(`/creator/${res.data.test_id}`);
+            })
+            .catch((err) => {
+                console.log(err.response.data);
+            });
     }
 
     return (
@@ -60,6 +89,24 @@ export default function CreateForm() {
                                         onBlur={field.onBlur}
                                         name={field.name}
                                         ref={field.ref}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <FormField
+                        control={form.control}
+                        name="liczba_pytan"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Liczba Pytań</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        id="liczba_pytan"
+                                        type="number"
+                                        {...field}
                                     />
                                 </FormControl>
                                 <FormMessage />

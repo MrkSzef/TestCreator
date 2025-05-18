@@ -16,8 +16,8 @@ import { Input } from "@/components/ui/input";
 import { CardContent, CardFooter } from "@/components/ui/card";
 
 const formSchema = z.object({
-    code: z.string().length(8, {
-        message: "Kod Testu ma 8 liter",
+    code: z.string().length(32, {
+        message: "Kod Testu ma 32 litery",
     })
 });
 
