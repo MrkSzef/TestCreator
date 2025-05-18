@@ -2,10 +2,10 @@ from __future__ import annotations
 from uuid import uuid4
 from random import sample
 
-# Lokalne pliki
 
-from meneger.file_meneger import PlikMenadzer
-from datamodel import (ID_Odp_t, ID_Pytanie_t, Odp_Punkty_t, TestWynikResponse, TestZamknietyResponse,
+# Lokalne pliki
+from menegers.file_meneger import PlikMenadzer
+from datamodel import (ID_Odp_t, ID_Pytanie_t, Odp_Punkty_t, Odp_Uczestniczy_t, Odp_Uczestniczy_Wyniki_t, TestInfoResponse, Test_Status_t, TestStworzonyResponse, TestWynikResponse, TestZamknietyResponse,
                        UUID_Test_t, Odp_Klucz_t, Odp_lista_t, Odp_t,
                        PytanieResponse, ArkuszResponse, Uczen)
 
@@ -24,27 +24,32 @@ class Test:
                  klucz_odp: Odp_Klucz_t):
         self.ID: UUID_Test_t = ID
         
-        self.zamkniety: bool = False
+        self.zamkniety: Test_Status_t = False
         self.pytania: dict[ID_Pytanie_t, Pytanie] = pytania
-        self.pytanie_na_arkusz: int = pytania_na_arkusz
+        self.pytania_na_arkusz: int = pytania_na_arkusz
         self.klucz_odp: Odp_Klucz_t = klucz_odp
         
-        self.uczesticy: list[tuple[ Uczen, Odp_Klucz_t]] = []
+        self.uczestnicy_odp: Odp_Uczestniczy_t = []
+        self.uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t = []
+    
+    def info(self) -> TestInfoResponse:
+        return TestInfoResponse(ID=self.ID, zamkniety=self.zamkniety, 
+                                pytania=[PytanieResponse(ID=pytanie.ID, tresc=pytanie.tresc, odp=pytanie.odp) for pytanie in self.pytania.values()], 
+                                pytania_na_arkusz=self.pytania_na_arkusz,
+                                klucz_odp=self.klucz_odp, 
+                                uczestnicy_wyniki=self.uczestnicy_wyniki,
+                                uczestnicy_odp=self.uczestnicy_odp)
     
     def zamknij(self) -> TestZamknietyResponse:
         self.zamkniety = True
-        wyniki: list[tuple[Uczen, TestWynikResponse]] = []
         
-        for uczen, odp in self.uczesticy:    
-            wyniki.append((uczen, self.odp_spraw(odp=odp)))
-        
-        return TestZamknietyResponse(wyniki=wyniki)
+        return TestZamknietyResponse(uczestnicy_wyniki=self.uczestnicy_wyniki)
     
     def losowy_arkusz(self) -> ArkuszResponse:
         if self.zamkniety:
             raise ValueError("Test został juz zakońcony")
         
-        pytania: list[Pytanie] = sample(list(self.pytania.values()), k=self.pytanie_na_arkusz)
+        pytania: list[Pytanie] = sample(list(self.pytania.values()), k=self.pytania_na_arkusz)
         pytania_response: list[PytanieResponse] = []
         
         for pytanie in pytania:
@@ -73,16 +78,28 @@ class Test:
     def odp_uzytkownika(self, uczen: Uczen, odp: Odp_Klucz_t) -> TestWynikResponse:
         if self.zamkniety:
             raise ValueError("Test został juz zakońcony")
+        elif len(odp) < self.pytania_na_arkusz:
+            raise ValueError("Nie przesłano wszystkich pytań", 
+                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
         
-        self.uczesticy.append((uczen, odp))
+        wynik: TestWynikResponse = self.odp_spraw(odp=odp)
+        self.uczestnicy_odp.append((uczen, odp))
+        self.uczestnicy_wyniki.append((uczen, wynik))
         
-        return self.odp_spraw(odp=odp)
+        return wynik
         
-class TestMenadzer:
+
+#!: Singleton 
+class TestMenadzer():
     POPRAWNA_ODP: ID_Odp_t = 0
     def __init__(self):
         self.slownik_testow: dict[UUID_Test_t, Test] = {}
                 
+    def __new__(cls, *args, **kwargs):
+        if "_obiekt" not in cls.__dict__:
+            cls._obiekt = super().__new__(cls, *args, **kwargs)
+        return cls._obiekt
+    
     def _add(self, test: Test) -> None:
         if test.ID in self.slownik_testow.keys():
             raise ValueError("Test o podanym ID już istnieje",
@@ -90,6 +107,22 @@ class TestMenadzer:
         
         self.slownik_testow[test.ID] = test
         
+    def get(self, ID: UUID_Test_t) -> Test:
+        test: Test = self.slownik_testow.get(ID)
+        
+        if not test:
+            raise ValueError("Nie znaleniono testu",
+                             f"ID: {ID}")
+        
+        return test
+    
+    #TODO: DO POPRAWY !!!!!!! - DRY
+    def dostepne_testy_nauczyciel(self) -> list[TestStworzonyResponse]:
+        return [TestStworzonyResponse(test_id=test_id) for test_id in self.slownik_testow.keys()]
+
+    def dostepne_testy_uczen(self) -> list[TestStworzonyResponse]:
+        return [TestStworzonyResponse(test_id=test_id) for test_id, test in self.slownik_testow.items() if not test.zamkniety]
+    
     def stworz_test(self, pytania_na_arkusz: int, plik: PlikMenadzer) -> UUID_Test_t:
         test_ID: UUID_Test_t = uuid4().hex
         pytania: dict[ID_Pytanie_t, Pytanie] = {}
@@ -112,14 +145,6 @@ class TestMenadzer:
                           pytania=pytania, klucz_odp=klucz_odp)
         self._add(test=test)
         
-        return test_ID
-    
-    def get(self, ID: UUID_Test_t) -> Test:
-        test: Test = self.slownik_testow.get(ID)
-        
-        if not test:
-            raise ValueError("Nie znaleniono testu",
-                             f"ID: {ID}")
-        
-        return test
-        
+        return test_ID   
+ 
+TEST_MENADZER: TestMenadzer = TestMenadzer()
