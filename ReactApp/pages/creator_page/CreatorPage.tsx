@@ -1,12 +1,14 @@
-import React from "react";
 import { useParams } from "react-router";
+import ZamknijTest from "@/components/other/ZamknijTest";
 
 export default function CreatorPage() {
   const { id } = useParams();
 
   return (
-    <div>
-      <h1>Creator Page {id}</h1>
+    <div className="flex flex-row gap-3">
+      <p>Test Join id: {id}</p>
+      <ZamknijTest testId={id}></ZamknijTest>
+      
     </div>
   );
 }
