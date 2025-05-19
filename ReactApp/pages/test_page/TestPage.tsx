@@ -18,6 +18,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner"
 
 type Pytanie = {
     ID: string | number;
@@ -55,6 +56,12 @@ export default function TestPage() {
             .post(`http://localhost:8000/uczen/arkusz/${id}/odaji`, data)
             .then((res) => {
                 console.log(res.data);
+                if (res.status == 200) {
+                    
+                }
+                if (res.status == 422) {
+                    res.data.detail[0] = "Nie przesłano wszystkich pytań";
+                }
             })
             .catch((err) => {
                 console.log(err.response.data);
