@@ -4,7 +4,7 @@ from random import sample
 
 
 # Lokalne pliki
-from menegers.file_meneger import PlikMenadzer
+from menegers.file_meneger import Plik
 from datamodel import (ID_Odp_t, ID_Pytanie_t, Odp_Punkty_t, Odp_Uczestniczy_t, Odp_Uczestniczy_Wyniki_t, TestInfoResponse, Test_Status_t, TestStworzonyResponse, TestWynikResponse, TestZamknietyResponse,
                        UUID_Test_t, Odp_Klucz_t, Odp_lista_t, Odp_t,
                        PytanieResponse, ArkuszResponse, Uczen)
@@ -29,8 +29,8 @@ class Test:
         self.pytania_na_arkusz: int = pytania_na_arkusz
         self.klucz_odp: Odp_Klucz_t = klucz_odp
         
-        self.uczestnicy_odp: Odp_Uczestniczy_t = []
-        self.uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t = []
+        self.uczestnicy_odp: Odp_Uczestniczy_t = {}
+        self.uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t = {}
     
     def info(self) -> TestInfoResponse:
         return TestInfoResponse(ID=self.ID, zamkniety=self.zamkniety, 
@@ -81,16 +81,19 @@ class Test:
         elif len(odp) < self.pytania_na_arkusz:
             raise ValueError("Nie przesłano wszystkich pytań", 
                              f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
+        elif len(odp) > self.pytania_na_arkusz:
+            raise ValueError("Przesłano za dużo pytań", 
+                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
         
         wynik: TestWynikResponse = self.odp_spraw(odp=odp)
-        self.uczestnicy_odp.append((uczen, odp))
-        self.uczestnicy_wyniki.append((uczen, wynik))
+        self.uczestnicy_odp[uczen] = odp
+        self.uczestnicy_wyniki[uczen] = wynik
         
         return wynik
         
 
 #!: Singleton 
-class TestMenadzer():
+class TestMenadzer:
     POPRAWNA_ODP: ID_Odp_t = 0
     def __init__(self):
         self.slownik_testow: dict[UUID_Test_t, Test] = {}
@@ -123,7 +126,7 @@ class TestMenadzer():
     def dostepne_testy_uczen(self) -> list[TestStworzonyResponse]:
         return [TestStworzonyResponse(test_id=test_id) for test_id, test in self.slownik_testow.items() if not test.zamkniety]
     
-    def stworz_test(self, pytania_na_arkusz: int, plik: PlikMenadzer) -> UUID_Test_t:
+    def stworz_test(self, pytania_na_arkusz: int, plik: Plik) -> UUID_Test_t:
         test_ID: UUID_Test_t = uuid4().hex
         pytania: dict[ID_Pytanie_t, Pytanie] = {}
         klucz_odp: Odp_Klucz_t = {}

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Path, UploadFile, status, File
 # Pliki lokalne
 from datamodel import TestInfoResponse, TestStworzonyResponse, TestZamknietyResponse, UUID_Test_t
 from httperror import HTTP_Value_Exception
-from menegers.file_meneger import PlikMenadzer
+from menegers.file_meneger import Plik, PlikMenadzer
 from menegers.test_meneger import TEST_MENADZER, Test
 
 
@@ -35,10 +35,13 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
                                                       \nNie może być większe niż ilość pytań w pliku csv",
                                                   ge=1)], 
                 plik_csv: Annotated[UploadFile, File(title="Plik csv", 
-                                                     description="Plik z pytaniami w formacie csv")]):
+                                                     description="Plik z pytaniami w formacie csv")],
+                plik_zapisac: Annotated[bool, Body(title="Plik zapisac", 
+                                                   description="Wartość deczydującza czy plik zostanie zapisany na serwerze")] = None):
     try:
-        plik_csv: PlikMenadzer = PlikMenadzer(plik_csv)
-        test_id: UUID_Test_t = TEST_MENADZER.stworz_test(liczba_pytan, plik_csv)
+        with PlikMenadzer() as PM:
+            plik_csv: Plik = PM.UploadFile(plik_csv, zapiszac=plik_zapisac if plik_zapisac else False)
+            test_id: UUID_Test_t = TEST_MENADZER.stworz_test(liczba_pytan, plik_csv)
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
     

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Annotated
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 """
     1.0.0 - Enumy
@@ -61,8 +61,8 @@ Odp_t = Annotated[str, Field(title="Odpowiedź", description="Odpowiedź", examp
 Odp_lista_t = Annotated[list[Odp_t], Field(title="Lista odpowiedzi", examples=[["Odp a", "Odp b"], ["Odp c", "Odp d"]])]
 Odp_Klucz_t = Annotated[dict[ID_Pytanie_t, Odp_t], Field(title="Klucz odpowiedzi", description="Przyporządkowuje id pytania do odpowiedzi", examples=[{4: "Odp a", 5: "Odp c"}])]
 Odp_Punkty_t = Annotated[int, Field(title="Punkty", description="Liczba punktów", ge=0, examples=[1, 20, 5, 0])]
-type Odp_Uczestniczy_t = Annotated[list[tuple[Uczen, Odp_Klucz_t]], Field(title="Odpowiedzi uczniów")]
-type Odp_Uczestniczy_Wyniki_t = Annotated[ list[tuple[Uczen, TestWynikResponse]], Field(title="Wyniki uczniów")]
+type Odp_Uczestniczy_t = Annotated[dict[Uczen, Odp_Klucz_t], Field(title="Odpowiedzi uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {2: "Odp a"}}])]
+type Odp_Uczestniczy_Wyniki_t = Annotated[dict[Uczen, TestWynikResponse], Field(title="Wyniki uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {"punkty": 0, "pytania_bledne": [2]}}])]
 
 # 2.4.0 Informacje o uztkoniku
 __podstawowa_skladnia = Annotated[str, Field(min_length=3,
@@ -79,9 +79,11 @@ Test_Status_t = Annotated[bool, Field(title="Status testu", description="Wartoś
 examples=[f"{False} - Test otwarty", f"{True} - Test zamknięty"])]
 
 # 3.0.0 - Modele odpowiedzi
+CONFIG_DICT = ConfigDict(frozen=True)
 # 3.1.0 - Pytanie
 # 3.1.1 - PytanieResponse 
 class PytanieResponse(BaseModel):
+    model_config = CONFIG_DICT
     ID: ID_Pytanie_t
     tresc: str
     odp: Odp_lista_t
@@ -89,24 +91,29 @@ class PytanieResponse(BaseModel):
 # 3.2.0 - Arkusz
 # 3.2.1 - ArkuszResponse
 class ArkuszResponse(BaseModel):
+    model_config = CONFIG_DICT
     pytania: list[PytanieResponse]
 
 # 3.3.0 - Test
 # 3.3.1 - TestStworzonyResponse
 class TestStworzonyResponse(BaseModel):
+    model_config = CONFIG_DICT
     test_id: UUID_Test_t
 
 # 3.3.2 - TestWynikResponse
 class TestWynikResponse(BaseModel):
+    model_config = CONFIG_DICT
     punkty: Odp_Punkty_t
     pytania_bledne: list[ID_Pytanie_t]
     
 # 3.3.3 - TestZamknietyResponse
 class TestZamknietyResponse(BaseModel):
+    model_config = CONFIG_DICT
     uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t
     
 # 3.3.4 - TestInfoResponse
 class TestInfoResponse(BaseModel):
+    model_config = CONFIG_DICT
     ID: UUID_Test_t
     
     zamkniety: Test_Status_t
@@ -121,5 +128,8 @@ class TestInfoResponse(BaseModel):
 # 3.4.0 - Urztkownik
 # 3.4.1 - Uczen
 class Uczen(BaseModel):
+    model_config = CONFIG_DICT
     imie: imie_t
     nazwisko: nazwisko_t
+    
+    

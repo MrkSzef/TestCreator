@@ -1,5 +1,6 @@
 from __future__ import annotations
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Lokalne pliki
@@ -20,11 +21,28 @@ TAGS_METADATA = [
     },
 ]
 
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+    "http://localhost:8000",
+    "http://localhost:5173",
+]
+
 # Aplikacja
 APP = FastAPI(title="TestCreator API",
               description="API służącze do przeprowadzania testów",
               version="0.0.3",
               openapi_tags=TAGS_METADATA)
+
+APP.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 APP.include_router(ROUTER_NAUCZYCZIEL, 
                    prefix=f"/{FastApiTags.NAUCZYCIEL.name.lower()}",
