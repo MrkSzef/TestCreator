@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Annotated
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 """
     1.0.0 - Enumy
@@ -17,9 +17,14 @@ from pydantic import BaseModel, Field
                         Wiele odpowiedzi lista
             2.3.3 - Odp_Klucz_t
                         Odpowiedzi dla danego pytania
+            2.3.4 - Odp_Punkty_t
+            2.3.5 - Odp_Wyniki_t
+            2.3.6 - Odp_Uczen_t
         2.4.0 - Informacja o użtkowniku
-            2.4.1 - Imie
-            2.4.2 - Nazwisko
+            2.4.1 - Imie_t
+            2.4.2 - Nazwisko_t
+        2.5.0 - Test
+            2.5.1 - Test_Status_t           
         
     3.0.0 - Modele odpowiedzi
         3.1.0 - Pytanie
@@ -29,6 +34,7 @@ from pydantic import BaseModel, Field
         3.3.0 - Test
             3.3.1 - TestStworzonyResponse
             3.3.2 - TestWynikResponse
+            3.3.3 - TestInfoResponse
         3.1.0 - Urzutkownik
             3.1.1 - Uczen
 """
@@ -38,35 +44,46 @@ from pydantic import BaseModel, Field
 class FastApiTags(Enum):
     NAUCZYCIEL = "Nauczyciel"
     UCZEN = "Uczeń"
-
+    
 # 2.0.0 - Typy danych
 # 2.1.0 - UUID
-UUID_t = Annotated[str, Field(title="ID znakowo/numeryczne")]
+UUID_t = Annotated[str, Field(title="ID znakowo/numeryczne", examples=["db1a21b08bee4e5c888f413178e29a53", "30318450a4ac4b67b4c57e3a5cd83c1f"])]
 UUID_Test_t = Annotated[UUID_t, Field(title="ID testu", description="ID testu")]
-UUID_Urzytkownik_t = Annotated[UUID_t, Field(title="ID urzutkownika", description="ID urzutkownika")]
+UUID_Uzytkownik_t = Annotated[UUID_t, Field(title="ID uzutkownika", description="ID uzutkownika")]
 
 # 2.2.0 - ID
-ID_t = Annotated[int, Field(title="ID numeryczne", ge=0)]
+ID_t = Annotated[int, Field(title="ID numeryczne", ge=0, examples=[10, 2, 31, 19])]
 ID_Pytanie_t = Annotated[ID_t, Field(title="ID pytania", description="ID pytania")]
 ID_Odp_t = Annotated[ID_t, Field(title="ID odpowiedzi", description="ID odpowiedzi")]
 
 # 2.3.0 - Odp
-Odp_t = Annotated[str, Field(title="Odpowiedź", description="Odpowiedź")]   
-Odp_lista_t = Annotated[list[Odp_t], Field(title="Lista odpowiedzi")]
-Odp_Klucz_t = Annotated[dict[ID_Pytanie_t, Odp_t], Field(title="Klucz odpowiedzi")]
-Odp_Punkty_t = Annotated[int, Field(title="Punkty", ge=0)]
+Odp_t = Annotated[str, Field(title="Odpowiedź", description="Odpowiedź", examples=["Odp a", "Odp b"])]   
+Odp_lista_t = Annotated[list[Odp_t], Field(title="Lista odpowiedzi", examples=[["Odp a", "Odp b"], ["Odp c", "Odp d"]])]
+Odp_Klucz_t = Annotated[dict[ID_Pytanie_t, Odp_t], Field(title="Klucz odpowiedzi", description="Przyporządkowuje id pytania do odpowiedzi", examples=[{4: "Odp a", 5: "Odp c"}])]
+Odp_Punkty_t = Annotated[int, Field(title="Punkty", description="Liczba punktów", ge=0, examples=[1, 20, 5, 0])]
+type Odp_Uczestniczy_t = Annotated[dict[Uczen, Odp_Klucz_t], Field(title="Odpowiedzi uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {2: "Odp a"}}])]
+type Odp_Uczestniczy_Wyniki_t = Annotated[dict[Uczen, TestWynikResponse], Field(title="Wyniki uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {"punkty": 0, "pytania_bledne": [2]}}])]
 
 # 2.4.0 Informacje o uztkoniku
 __podstawowa_skladnia = Annotated[str, Field(min_length=3,
                                                   max_length=51,
                                                   pattern="^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$")]
-imie_t = Annotated[__podstawowa_skladnia, Field(title="Imie")]
-nazwisko_t = Annotated[__podstawowa_skladnia, Field(title="Nazwisko")]
+imie_t = Annotated[__podstawowa_skladnia, Field(title="Imie", description="Imie osoby", examples=["Stefan", "Marta"])]
+nazwisko_t = Annotated[__podstawowa_skladnia, Field(title="Nazwisko", description="Nazwiskow osoby", examples=["Stanowski", "Nieśmiałek"])]
+
+# 2.5.0 Test
+# 2.5.1 TestStatus_t
+Test_Status_t = Annotated[bool, Field(title="Status testu", description="Wartoś określającza czy test jest otwary czy zamkniety.\
+\n\tOtwary - Można udzielać odpowiedz\
+\n\tZamkniety - Test już się zakończył i niemożna udzielać odpowiedzi",
+examples=[f"{False} - Test otwarty", f"{True} - Test zamknięty"])]
 
 # 3.0.0 - Modele odpowiedzi
+CONFIG_DICT = ConfigDict(frozen=True)
 # 3.1.0 - Pytanie
 # 3.1.1 - PytanieResponse 
 class PytanieResponse(BaseModel):
+    model_config = CONFIG_DICT
     ID: ID_Pytanie_t
     tresc: str
     odp: Odp_lista_t
@@ -74,24 +91,45 @@ class PytanieResponse(BaseModel):
 # 3.2.0 - Arkusz
 # 3.2.1 - ArkuszResponse
 class ArkuszResponse(BaseModel):
+    model_config = CONFIG_DICT
     pytania: list[PytanieResponse]
 
 # 3.3.0 - Test
 # 3.3.1 - TestStworzonyResponse
 class TestStworzonyResponse(BaseModel):
+    model_config = CONFIG_DICT
     test_id: UUID_Test_t
 
 # 3.3.2 - TestWynikResponse
 class TestWynikResponse(BaseModel):
+    model_config = CONFIG_DICT
     punkty: Odp_Punkty_t
     pytania_bledne: list[ID_Pytanie_t]
     
 # 3.3.3 - TestZamknietyResponse
 class TestZamknietyResponse(BaseModel):
-    wyniki: list[tuple[Uczen, TestWynikResponse]]
+    model_config = CONFIG_DICT
+    uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t
+    
+# 3.3.4 - TestInfoResponse
+class TestInfoResponse(BaseModel):
+    model_config = CONFIG_DICT
+    ID: UUID_Test_t
+    
+    zamkniety: Test_Status_t
+    
+    pytania:  list[PytanieResponse]
+    pytania_na_arkusz: int
+    klucz_odp: Odp_Klucz_t
+    
+    uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t
+    uczestnicy_odp: Odp_Uczestniczy_t
 
 # 3.4.0 - Urztkownik
 # 3.4.1 - Uczen
 class Uczen(BaseModel):
+    model_config = CONFIG_DICT
     imie: imie_t
     nazwisko: nazwisko_t
+    
+    
