@@ -18,7 +18,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner"
+import { toast } from "sonner";
 
 type Pytanie = {
     ID: string | number;
@@ -27,14 +27,19 @@ type Pytanie = {
 };
 
 const formSchema = z.object({
-    name: z.string(),
-    surname: z.string(),
+    name: z.string().regex(/^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$/, {
+        message: "Podaj poprawne imie",
+    }),
+    surname: z.string().regex(/^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$/, {
+        message: "Podaj poprawne nazwisko",
+    }),
 });
 
 export default function TestPage() {
     let odpowiedzi: { [key: string]: string } = {};
     const { id } = useParams();
     const [pytania, setPytania] = useState<Pytanie[]>([]);
+    const [oddane, setOddane] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -47,25 +52,38 @@ export default function TestPage() {
     // 2. Define a submit handler.
     function onSubmit(values: z.infer<typeof formSchema>) {
         const data = {
-            "imie": values.name,
-            "nazwisko": values.surname,
-            "odp": odpowiedzi,
+            imie: values.name,
+            nazwisko: values.surname,
+            odp: odpowiedzi,
         };
-        
-        axios
-            .post(`http://localhost:8000/uczen/arkusz/${id}/odaji`, data)
-            .then((res) => {
-                console.log(res.data);
-                if (res.status == 200) {
-                    
-                }
-                if (res.status == 422) {
-                    res.data.detail[0] = "Nie przesłano wszystkich pytań";
-                }
-            })
-            .catch((err) => {
-                console.log(err.response.data);
-            });
+        if (!oddane) {
+            axios
+                .post(`http://localhost:8000/uczen/arkusz/${id}/odaji`, data)
+                .then((res) => {
+                    console.log(res.status);
+                    console.log(res.data);
+
+                    if (res.status == 200) {
+                        setOddane(true);
+                    }
+                })
+                .catch((err) => {
+                    if (err.status == 400) {
+                        toast("Nie zaznaczono wszystkich odpowiedzi", {
+                            description: `Oddano ${
+                                err.response.data.detail[1].split(": ")[1]
+                            }/${
+                                err.response.data.detail[2].split(": ")[1]
+                            } Odpowiedzi`,
+                            action: {
+                                label: "Usuń",
+                                onClick: () => console.log("Undo"),
+                            },
+                        });
+                    }
+                    console.log(err.response.data);
+                });
+        }
     }
 
     // API REQUEST
