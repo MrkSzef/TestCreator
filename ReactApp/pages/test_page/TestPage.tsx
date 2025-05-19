@@ -19,15 +19,12 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-function GetTest(odpowiedzi: { [key: string]: string }) {
-    console.log(odpowiedzi);
-}
-
 type Pytanie = {
     ID: string | number;
     tresc: string;
     odp: string[];
 };
+
 const formSchema = z.object({
     name: z.string(),
     surname: z.string(),
@@ -48,9 +45,20 @@ export default function TestPage() {
 
     // 2. Define a submit handler.
     function onSubmit(values: z.infer<typeof formSchema>) {
-        // Do something with the form values.
-        // ✅ This will be type-safe and validated.
-        console.log(values);
+        const data = {
+            "imie": values.name,
+            "nazwisko": values.surname,
+            "odp": odpowiedzi,
+        };
+        
+        axios
+            .post(`http://localhost:8000/uczen/arkusz/${id}/odaji`, data)
+            .then((res) => {
+                console.log(res.data);
+            })
+            .catch((err) => {
+                console.log(err.response.data);
+            });
     }
 
     // API REQUEST
@@ -70,7 +78,6 @@ export default function TestPage() {
         <Card>
             <CardHeader>
                 <CardTitle>Test {id}</CardTitle>
-                <Button onClick={() => GetTest(odpowiedzi)}>ziemniak</Button>
             </CardHeader>
             <CardContent className="flex flex-col gap-5">
                 <Form {...form}>
@@ -117,7 +124,12 @@ export default function TestPage() {
                 <div className="flex flex-col divide-y-2 divide-dashed divide-gray-400">
                     {pytania.map((pytanie) => {
                         return (
-                            <RadioGroup onValueChange={(odpowiedz) => {odpowiedzi[pytanie.ID] = odpowiedz}} className="pb-5 pt-5">
+                            <RadioGroup
+                                onValueChange={(odpowiedz) => {
+                                    odpowiedzi[pytanie.ID] = odpowiedz;
+                                }}
+                                className="pb-5 pt-5 pytanie"
+                            >
                                 <Label className="text-xl">
                                     {pytanie.tresc}
                                 </Label>
