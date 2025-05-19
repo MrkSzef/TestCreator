@@ -2,6 +2,8 @@ from __future__ import annotations
 from uuid import uuid4
 from random import sample
 
+from fastapi import HTTPException, status
+
 
 # Lokalne pliki
 from menegers.file_meneger import Plik
@@ -79,8 +81,8 @@ class Test:
         if self.zamkniety:
             raise ValueError("Test został juz zakońcony")
         elif len(odp) < self.pytania_na_arkusz:
-            raise ValueError("Nie przesłano wszystkich pytań", 
-                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=["Nie przesłano wszystkich pytań", 
+                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}"])
         elif len(odp) > self.pytania_na_arkusz:
             raise ValueError("Przesłano za dużo pytań", 
                              f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
@@ -140,7 +142,7 @@ class TestMenadzer:
             klucz_odp[pytanie_ID] = odpowiedz_praw
             
         if len(pytania) < pytania_na_arkusz:
-            raise ValueError("Ilość pytań na arkusz jest większa od ilości dostępnych pytań", 
+            raise  ValueError("Ilość pytań na arkusz jest większa od ilości dostępnych pytań", 
                              f"Ilość dostępnych pytań: {len(pytania)}",
                              f"Żądana ilość pytań: {pytania_na_arkusz}")
         

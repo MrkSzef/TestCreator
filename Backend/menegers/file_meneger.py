@@ -49,17 +49,17 @@ class PlikMenadzer:
         
         return Plik(plik)                        
        
-    def UploadFile(self, plik: UploadFile, zapiszac: bool = False) -> Plik:
+    def UploadFile(self, plik: UploadFile, zapisac: bool = False) -> Plik:
         self._add(plik)
         if plik.content_type != "text/csv":
             raise ValueError("Błedny typ pliku", "oczekiwano: text/csv", f"otrzymano: {plik.content_type}")
         
-        if zapiszac:
-            self.zapisz(plik.file, plik.filename)
+        if zapisac:
+            self.zapis(plik.file, plik.filename)
         
         return Plik(plik.file, plik.filename)
     
-    def zapisz(self, plik: BinaryIO, plik_nazwa: str) -> None:
+    def zapis(self, plik: BinaryIO, plik_nazwa: str) -> None:
         try:
             with open(os.path.join(self.SCIEZKA_ZAPISANE_PLIKI, plik_nazwa), "+wb") as plik_lokalny:
                 plik_lokalny.writelines(plik.readlines())

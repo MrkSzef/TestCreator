@@ -40,7 +40,7 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
                                                    description="Wartość deczydującza czy plik zostanie zapisany na serwerze")] = None):
     try:
         with PlikMenadzer() as PM:
-            plik_csv: Plik = PM.UploadFile(plik_csv, zapiszac=plik_zapisac if plik_zapisac else False)
+            plik_csv: Plik = PM.UploadFile(plik_csv, zapisac=plik_zapisac if plik_zapisac else False)
             test_id: UUID_Test_t = TEST_MENADZER.stworz_test(liczba_pytan, plik_csv)
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
