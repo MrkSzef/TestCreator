@@ -6,7 +6,7 @@ import { useParams } from "react-router";
 import { useEffect, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import "../../src/styles/globals.css";
-import { z } from "zod";
+import { any, number, z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import ExamScore from "../../src/components/other/ExamScore";
 
 type Pytanie = {
-    ID: string | number;
+    ID: string;
     tresc: string;
     odp: string[];
 };
@@ -36,8 +37,12 @@ const formSchema = z.object({
 });
 
 export default function TestPage() {
-    let odpowiedzi: { [key: string]: string } = {};
     const { id } = useParams();
+    const [odpowiedzi, setOdpowiedzi] = useState<{ [key: string]: string }>({});
+    const [uzyskanePunkty, setUzyskanePunkty] = useState<{
+        punkty: number;
+        pytania_bledne: number[];
+    }>({ punkty: 0, pytania_bledne: [] });
     const [pytania, setPytania] = useState<Pytanie[]>([]);
     const [oddane, setOddane] = useState(false);
 
@@ -65,6 +70,7 @@ export default function TestPage() {
 
                     if (res.status == 200) {
                         setOddane(true);
+                        setUzyskanePunkty(res.data);
                     }
                 })
                 .catch((err) => {
@@ -92,7 +98,13 @@ export default function TestPage() {
             .get(`http://localhost:8000/uczen/arkusz/${id}`)
             .then((res) => {
                 console.log(res.data);
-                setPytania(res.data.pytania);
+                // Ensure all IDs are strings
+                setPytania(
+                    res.data.pytania.map((pytanie: any) => ({
+                        ...pytanie,
+                        ID: String(pytanie.ID),
+                    }))
+                );
             })
             .catch((err) => {
                 console.log(err.response.data);
@@ -100,86 +112,95 @@ export default function TestPage() {
     }, []);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Test {id}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-5">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)}>
-                        <div className="flex flex-row gap-2">
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Imie</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Jan"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="surname"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Nazwisko</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="Kowalski"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="flex items-end">
-                                <Button type="submit">Oddaj Test</Button>
+        <>
+            <ExamScore
+                OpenDialog={oddane}
+                TestData={{ pytania, uzyskanePunkty, odpowiedzi }}
+            ></ExamScore>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Test {id}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-5">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)}>
+                            <div className="flex flex-row gap-2">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Imie</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Jan"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="surname"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Nazwisko</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder="Kowalski"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="flex items-end">
+                                    <Button type="submit">Oddaj Test</Button>
+                                </div>
                             </div>
-                        </div>
-                    </form>
-                </Form>
-                <div className="flex flex-col divide-y-2 divide-dashed divide-gray-400">
-                    {pytania.map((pytanie) => {
-                        return (
-                            <RadioGroup
-                                onValueChange={(odpowiedz) => {
-                                    odpowiedzi[pytanie.ID] = odpowiedz;
-                                }}
-                                className="pb-5 pt-5 pytanie"
-                            >
-                                <Label className="text-xl">
-                                    {pytanie.tresc}
-                                </Label>
-                                {pytanie.odp.map((odpowiedz, idx) => (
-                                    <div
-                                        className="flex items-center space-x-2"
-                                        key={idx}
-                                    >
-                                        <RadioGroupItem
-                                            value={odpowiedz}
-                                            id={`odp-${pytanie.ID}-${idx}`}
-                                        />
-                                        <Label
-                                            className="text-md text-gray-200"
-                                            htmlFor={`odp-${pytanie.ID}-${idx}`}
+                        </form>
+                    </Form>
+                    <div className="flex flex-col divide-y-2 divide-dashed divide-gray-400">
+                        {pytania.map((pytanie) => {
+                            return (
+                                <RadioGroup
+                                    onValueChange={(odpowiedz) => {
+                                        setOdpowiedzi({
+                                            ...(odpowiedzi || {}),
+                                            [pytanie.ID]: odpowiedz,
+                                        });
+                                    }}
+                                    className="pb-5 pt-5 pytanie"
+                                >
+                                    <Label className="text-xl">
+                                        {pytanie.tresc}
+                                    </Label>
+                                    {pytanie.odp.map((odpowiedz, idx) => (
+                                        <div
+                                            className="flex items-center space-x-2"
+                                            key={idx}
                                         >
-                                            {odpowiedz}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </RadioGroup>
-                        );
-                    })}
-                </div>
-            </CardContent>
-        </Card>
+                                            <RadioGroupItem
+                                                value={odpowiedz}
+                                                id={`odp-${pytanie.ID}-${idx}`}
+                                            />
+                                            <Label
+                                                className="text-md text-gray-200"
+                                                htmlFor={`odp-${pytanie.ID}-${idx}`}
+                                            >
+                                                {odpowiedz}
+                                            </Label>
+                                        </div>
+                                    ))}
+                                </RadioGroup>
+                            );
+                        })}
+                    </div>
+                </CardContent>
+            </Card>
+        </>
     );
 }
