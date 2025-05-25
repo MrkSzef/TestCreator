@@ -2,8 +2,9 @@ from typing import Annotated
 from fastapi import APIRouter, Body, Path, status
 
 # Lokalne pliki
-from datamodel import ArkuszResponse, Odp_Klucz_t, Test_Status_t, TestStworzonyResponse, TestWynikResponse, UUID_Test_t, imie_t, nazwisko_t, Uczen
+from datamodel import ArkuszResponse, Odp_Klucz_t, Test_Status_t, TestStworzonyResponse, TestWynikResponse, UUID_Test_t, imie_t, nazwisko_t
 from httperror import HTTP_Value_Exception
+from entitys.participant_entity import Uczestnik
 from menegers.test_meneger import TEST_MENADZER, Test
 
 ROUTER_UCZEN: APIRouter = APIRouter()
@@ -16,7 +17,7 @@ ROUTER_UCZEN: APIRouter = APIRouter()
          response_model=list[TestStworzonyResponse])
 def test_wszystkie():
     #TODO: Do poprawy
-    return TEST_MENADZER.dostepne_testy_uczen()
+    return TEST_MENADZER.dostepne_testy(zamkniete=False)
 
 @ROUTER_UCZEN.get(path="/test/{test_id}/zamkniety",
                   name="Test zamknięty ?",
@@ -34,7 +35,6 @@ def test_otwarty(test_id: Annotated[UUID_Test_t, Path()]):
         raise HTTP_Value_Exception(e.args)
     
     return test_status
-
 
 @ROUTER_UCZEN.get(path="/arkusz/{test_id}", 
          name="Losowy arkusz",
@@ -64,10 +64,10 @@ def wyslij_odp(test_id: Annotated[UUID_Test_t, Path()],
                nazwisko: Annotated[nazwisko_t, Body()],
                odp: Annotated[Odp_Klucz_t, Body()]):
     try:
-        uczen: Uczen = Uczen(imie=imie, nazwisko=nazwisko)
+        uczestnik: Uczestnik = Uczestnik(imie=imie, nazwisko=nazwisko, odpowiedzi=odp)
         test: Test = TEST_MENADZER.get(test_id)
         
-        wynik: TestWynikResponse = test.odp_uzytkownika(uczen=uczen, odp=odp)
+        wynik: TestWynikResponse = test.odp_uzytkownika(uczestnik=uczestnik)
         
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)

@@ -8,3 +8,9 @@ Metoda:
 
 Dokumentacja on-line
 http://127.0.0.1:8000/docs
+
+
+Endpointy nie uwzględnione w OpenApi docs
+
+ws://localhost:8000/nauczyciel/test/{test_id}info/ws
+Bardzo prosty websocket, który co sekundę wysyła wiadomość info dla danago testu testu 
