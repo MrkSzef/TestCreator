@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Annotated
 from fastapi import APIRouter, Body, Path, UploadFile, WebSocket, WebSocketDisconnect, status, File
 
@@ -96,15 +97,46 @@ async def test(test_id: UUID_Test_t, websocket: WebSocket):
         raise HTTP_Value_Exception(e.args)
     
     await websocket.accept()
+    tmp = None
     while True:
+        test_info = test.info()
         try:
             if not test.zamkniety:
-                await websocket.send_json(test.info().model_dump())
+                if tmp is None:
+                    tmp = test_info
+                if tmp != test_info:
+                    await websocket.send_json(test_info.model_dump())
+                    tmp = test_info
             else:
                 break
         except WebSocketDisconnect:
             pass
         await asyncio.sleep(1)
-    await websocket.close()
-        
+    await websocket.close()        
+
+#TODO: Do poprawy
+@ROUTER_NAUCZYCZIEL.websocket("/test/{test_id}/wyniki/ws")
+async def test(test_id: UUID_Test_t, websocket: WebSocket):
+    try:
+        test: Test = TEST_MENADZER.get(test_id)
+    except ValueError as e:
+        raise HTTP_Value_Exception(e.args)
+    
+    await websocket.accept()
+    tmp = None
+    while True:
+        test_info = test.get_uczestnicy_response()
+        try:
+            if not test.zamkniety:
+                if tmp is None:
+                    tmp = test_info
+                if tmp != test_info:
+                    await websocket.send_json([uczestnik.model_dump() for uczestnik in test_info])
+                    tmp = test_info
+            else:
+                break
+        except WebSocketDisconnect:
+            pass
+        await asyncio.sleep(1)
+    await websocket.close()        
 #?: Dodać usuwanie testu
