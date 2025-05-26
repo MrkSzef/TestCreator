@@ -1,98 +1,11 @@
 from __future__ import annotations
 from uuid import uuid4
-from random import sample
-
-from fastapi import HTTPException, status
-
 
 # Lokalne pliki
-from menegers.file_meneger import Plik
-from datamodel import (ID_Odp_t, ID_Pytanie_t, Odp_Punkty_t, Odp_Uczestniczy_t, Odp_Uczestniczy_Wyniki_t, TestInfoResponse, Test_Status_t, TestStworzonyResponse, TestWynikResponse, TestZamknietyResponse,
-                       UUID_Test_t, Odp_Klucz_t, Odp_lista_t, Odp_t,
-                       PytanieResponse, ArkuszResponse, Uczen)
-
-class Pytanie:
-    def __init__(self, ID: ID_Pytanie_t, tresc: str, odp: Odp_lista_t, odp_praw: Odp_t):
-        self.ID: ID_Pytanie_t = ID
-        
-        self.tresc: str = tresc
-        self.odp: Odp_lista_t = odp
-        self.odp_praw: Odp_t = odp_praw
-    
-class Test:
-    def __init__(self, ID: UUID_Test_t,
-                 pytania_na_arkusz: int,
-                 pytania: dict[ID_Pytanie_t, Pytanie],
-                 klucz_odp: Odp_Klucz_t):
-        self.ID: UUID_Test_t = ID
-        
-        self.zamkniety: Test_Status_t = False
-        self.pytania: dict[ID_Pytanie_t, Pytanie] = pytania
-        self.pytania_na_arkusz: int = pytania_na_arkusz
-        self.klucz_odp: Odp_Klucz_t = klucz_odp
-        
-        self.uczestnicy_odp: Odp_Uczestniczy_t = {}
-        self.uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t = {}
-    
-    def info(self) -> TestInfoResponse:
-        return TestInfoResponse(ID=self.ID, zamkniety=self.zamkniety, 
-                                pytania=[PytanieResponse(ID=pytanie.ID, tresc=pytanie.tresc, odp=pytanie.odp) for pytanie in self.pytania.values()], 
-                                pytania_na_arkusz=self.pytania_na_arkusz,
-                                klucz_odp=self.klucz_odp, 
-                                uczestnicy_wyniki=self.uczestnicy_wyniki,
-                                uczestnicy_odp=self.uczestnicy_odp)
-    
-    def zamknij(self) -> TestZamknietyResponse:
-        self.zamkniety = True
-        
-        return TestZamknietyResponse(uczestnicy_wyniki=self.uczestnicy_wyniki)
-    
-    def losowy_arkusz(self) -> ArkuszResponse:
-        if self.zamkniety:
-            raise ValueError("Test został juz zakońcony")
-        
-        pytania: list[Pytanie] = sample(list(self.pytania.values()), k=self.pytania_na_arkusz)
-        pytania_response: list[PytanieResponse] = []
-        
-        for pytanie in pytania:
-            pytanie.odp = sample(pytanie.odp, k=len(pytanie.odp))
-            pytania_response.append(PytanieResponse(ID=pytanie.ID, tresc=pytanie.tresc, odp=pytanie.odp))
-        
-        return ArkuszResponse(pytania=pytania_response)
-    
-    def odp_spraw(self, odp: Odp_Klucz_t) -> TestWynikResponse:
-        punkty: Odp_Punkty_t = 0
-        pytania_bledne: list[ID_Pytanie_t] = []
-        
-        for pytanie_id, odp_ucznia in odp.items():
-            odp_praw: Odp_t = self.pytania.get(pytanie_id).odp_praw
-            if not odp_praw:
-                raise ValueError("Pytanie o podanym id nie istnieje", 
-                                 f"ID: {pytanie_id}")
-                
-            if odp_praw == odp_ucznia:
-                punkty += 1
-            else:
-                pytania_bledne.append(pytanie_id)
-                
-        return TestWynikResponse(punkty=punkty, pytania_bledne=sorted(pytania_bledne))
-    
-    def odp_uzytkownika(self, uczen: Uczen, odp: Odp_Klucz_t) -> TestWynikResponse:
-        if self.zamkniety:
-            raise ValueError("Test został juz zakońcony")
-        elif len(odp) < self.pytania_na_arkusz:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=["Nie przesłano wszystkich pytań", 
-                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}"])
-        elif len(odp) > self.pytania_na_arkusz:
-            raise ValueError("Przesłano za dużo pytań", 
-                             f"otzymano: {len(odp)}", f"oczekiwano: {self.pytania_na_arkusz}")
-        
-        wynik: TestWynikResponse = self.odp_spraw(odp=odp)
-        self.uczestnicy_odp[uczen] = odp
-        self.uczestnicy_wyniki[uczen] = wynik
-        
-        return wynik
-        
+from datamodel import (ID_Odp_t, ID_Pytanie_t, TestStworzonyResponse, UUID_Test_t, Odp_Klucz_t, Odp_t)
+from entitys.file_entity import Plik
+from entitys.test_entity import Test
+from entitys.question_entity import Pytanie
 
 #!: Singleton 
 class TestMenadzer:
@@ -121,12 +34,8 @@ class TestMenadzer:
         
         return test
     
-    #TODO: DO POPRAWY !!!!!!! - DRY
-    def dostepne_testy_nauczyciel(self) -> list[TestStworzonyResponse]:
-        return [TestStworzonyResponse(test_id=test_id) for test_id in self.slownik_testow.keys()]
-
-    def dostepne_testy_uczen(self) -> list[TestStworzonyResponse]:
-        return [TestStworzonyResponse(test_id=test_id) for test_id, test in self.slownik_testow.items() if not test.zamkniety]
+    def dostepne_testy(self, zamkniete: bool) -> list[TestStworzonyResponse]:
+        return [TestStworzonyResponse(test_id=test_id) for test_id, test in self.slownik_testow.items() if not test.zamkniety or zamkniete]
     
     def stworz_test(self, pytania_na_arkusz: int, plik: Plik) -> UUID_Test_t:
         test_ID: UUID_Test_t = uuid4().hex
@@ -134,7 +43,7 @@ class TestMenadzer:
         klucz_odp: Odp_Klucz_t = {}
         
         for tresc, *odpowiedzi in plik.decode():
-            pytanie_ID: ID_Pytanie_t = len(pytania)
+            pytanie_ID: ID_Pytanie_t = len(pytania) + 1
             odpowiedz_praw: Odp_t = odpowiedzi[self.POPRAWNA_ODP]
             pytanie = Pytanie(ID=pytanie_ID, tresc=tresc, odp=odpowiedzi, odp_praw=odpowiedz_praw)
             

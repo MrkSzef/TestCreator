@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
+
 # Lokalne pliki
 from datamodel import FastApiTags
 from routes.router_teacher import ROUTER_NAUCZYCZIEL

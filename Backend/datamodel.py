@@ -20,7 +20,8 @@ from pydantic import BaseModel, ConfigDict, Field
             2.3.4 - Odp_Punkty_t
             2.3.5 - Odp_Wyniki_t
             2.3.6 - Odp_Uczen_t
-        2.4.0 - Informacja o użtkowniku
+        2.4.0 - Pytania
+        2.5.0 - Informacja o użtkowniku
             2.4.1 - Imie_t
             2.4.2 - Nazwisko_t
         2.5.0 - Test
@@ -34,9 +35,11 @@ from pydantic import BaseModel, ConfigDict, Field
         3.3.0 - Test
             3.3.1 - TestStworzonyResponse
             3.3.2 - TestWynikResponse
-            3.3.3 - TestInfoResponse
+            3.3.3 - 
+            3.3.4 - TestInfoResponse
         3.1.0 - Urzutkownik
-            3.1.1 - Uczen
+            3.4.1 - UczenResponse
+            3.4.2 - UczenWynikResponse
 """
 
 # 1.0.0 - Enumy
@@ -61,10 +64,11 @@ Odp_t = Annotated[str, Field(title="Odpowiedź", description="Odpowiedź", examp
 Odp_lista_t = Annotated[list[Odp_t], Field(title="Lista odpowiedzi", examples=[["Odp a", "Odp b"], ["Odp c", "Odp d"]])]
 Odp_Klucz_t = Annotated[dict[ID_Pytanie_t, Odp_t], Field(title="Klucz odpowiedzi", description="Przyporządkowuje id pytania do odpowiedzi", examples=[{4: "Odp a", 5: "Odp c"}])]
 Odp_Punkty_t = Annotated[int, Field(title="Punkty", description="Liczba punktów", ge=0, examples=[1, 20, 5, 0])]
-type Odp_Uczestniczy_t = Annotated[dict[Uczen, Odp_Klucz_t], Field(title="Odpowiedzi uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {2: "Odp a"}}])]
-type Odp_Uczestniczy_Wyniki_t = Annotated[dict[Uczen, TestWynikResponse], Field(title="Wyniki uczniów", default_factory=dict, examples=[{"imie='Jan' nazwisko='Nowak'": {"punkty": 0, "pytania_bledne": [2]}}])]
 
-# 2.4.0 Informacje o uztkoniku
+# 2.4.0 - Pytania
+Pytania_lista_t = Annotated[list[ID_Pytanie_t], Field(title="Lista pytan")]
+
+# 2.5.0 Informacje o uztkoniku
 __podstawowa_skladnia = Annotated[str, Field(min_length=3,
                                                   max_length=51,
                                                   pattern="^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$")]
@@ -104,13 +108,8 @@ class TestStworzonyResponse(BaseModel):
 class TestWynikResponse(BaseModel):
     model_config = CONFIG_DICT
     punkty: Odp_Punkty_t
-    pytania_bledne: list[ID_Pytanie_t]
-    
-# 3.3.3 - TestZamknietyResponse
-class TestZamknietyResponse(BaseModel):
-    model_config = CONFIG_DICT
-    uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t
-    
+    pytania_bledne: Pytania_lista_t
+  
 # 3.3.4 - TestInfoResponse
 class TestInfoResponse(BaseModel):
     model_config = CONFIG_DICT
@@ -122,14 +121,20 @@ class TestInfoResponse(BaseModel):
     pytania_na_arkusz: int
     klucz_odp: Odp_Klucz_t
     
-    uczestnicy_wyniki: Odp_Uczestniczy_Wyniki_t
-    uczestnicy_odp: Odp_Uczestniczy_t
+    uczestnicy_odpowiedzi: list[UczenWynikResponse]
 
 # 3.4.0 - Urztkownik
-# 3.4.1 - Uczen
-class Uczen(BaseModel):
+# 3.4.1 - UczenResponse
+class UczenResponse(BaseModel):
     model_config = CONFIG_DICT
+    
     imie: imie_t
     nazwisko: nazwisko_t
+
+# 3.4.2 - UczenWynikResponse
+class UczenWynikResponse(BaseModel):
+    model_config = CONFIG_DICT
     
-    
+    klucz_odp: Odp_Klucz_t
+    uczen: UczenResponse
+    wynik: TestWynikResponse    

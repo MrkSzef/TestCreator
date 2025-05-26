@@ -1,16 +1,19 @@
+import asyncio
+import json
 from typing import Annotated
-from fastapi import APIRouter, Body, Path, UploadFile, status, File
+from fastapi import APIRouter, Body, Path, UploadFile, WebSocket, WebSocketDisconnect, status, File
+
 
 # Pliki lokalne
-from datamodel import TestInfoResponse, TestStworzonyResponse, TestZamknietyResponse, UUID_Test_t
+from datamodel import TestInfoResponse, TestStworzonyResponse, UUID_Test_t, UczenWynikResponse
 from httperror import HTTP_Value_Exception
+# from entitys.watcher_entity import ObserwatorWynikow
 from menegers.file_meneger import Plik, PlikMenadzer
 from menegers.test_meneger import TEST_MENADZER, Test
 
 
 
 ROUTER_NAUCZYCZIEL = APIRouter()
-
 
 @ROUTER_NAUCZYCZIEL.get(path="/test/",
          name="Dostępne testy",
@@ -20,7 +23,7 @@ ROUTER_NAUCZYCZIEL = APIRouter()
          response_model=list[TestStworzonyResponse])
 def test_wszystkie():
     #TODO: Do poprawy
-    return TEST_MENADZER.dostepne_testy_nauczyciel()
+    return TEST_MENADZER.dostepne_testy(zamkniete=True)
 
 @ROUTER_NAUCZYCZIEL.post(path="/test/stworz",
           name="Stwórz test",
@@ -56,24 +59,84 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
 def test_info(test_id: Annotated[UUID_Test_t, Path()]) -> TestInfoResponse:
     try: 
         test: Test = TEST_MENADZER.get(test_id)
+        return test.info()
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
-    
-    return test.info()
+
+@ROUTER_NAUCZYCZIEL.get(path="/test/{test_id}/wyniki",
+                        name="Wyniki uczniów",
+                        description="Informacje o wynikach urzyskanych przez uczniów",
+                        status_code=status.HTTP_200_OK,
+                        response_model=list[UczenWynikResponse])
+def test_wyniki(test_id: Annotated[UUID_Test_t, Path()]) -> list[UczenWynikResponse]:
+    try:
+        test: Test = TEST_MENADZER.get(test_id)
+        return test.get_uczestnicy_response()
+    except ValueError as e:
+        raise HTTP_Value_Exception(e.args)
 
 @ROUTER_NAUCZYCZIEL.get(path="/test/{test_id}/zamknij", 
          name="Zamknij test",
          description="Zamykanie testu.\
              \nBlokowanie ucznią możliwości pobierania losowego arkusz oraz wysyłania odpowiedzi",
          status_code=status.HTTP_200_OK,
-         response_model=TestZamknietyResponse)
-def test_zamknij(test_id: Annotated[UUID_Test_t, Path()]) -> TestZamknietyResponse:
+         response_model=list[UczenWynikResponse])
+def test_zamknij(test_id: Annotated[UUID_Test_t, Path()]) -> list[UczenWynikResponse]:
     try:
         test: Test = TEST_MENADZER.get(test_id)
-        wyniki = test.zamknij()
+        return test.zamknij()
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)    
-    
-    return wyniki
 
+#TODO: Do poprawy
+@ROUTER_NAUCZYCZIEL.websocket("/test/{test_id}/info/ws")
+async def test(test_id: UUID_Test_t, websocket: WebSocket):
+    try:
+        test: Test = TEST_MENADZER.get(test_id)
+    except ValueError as e:
+        raise HTTP_Value_Exception(e.args)
+    
+    await websocket.accept()
+    tmp = None
+    while True:
+        test_info = test.info()
+        try:
+            if not test.zamkniety:
+                if tmp is None:
+                    tmp = test_info
+                if tmp != test_info:
+                    await websocket.send_json(test_info.model_dump())
+                    tmp = test_info
+            else:
+                break
+        except WebSocketDisconnect:
+            pass
+        await asyncio.sleep(1)
+    await websocket.close()        
+
+#TODO: Do poprawy
+@ROUTER_NAUCZYCZIEL.websocket("/test/{test_id}/wyniki/ws")
+async def test(test_id: UUID_Test_t, websocket: WebSocket):
+    try:
+        test: Test = TEST_MENADZER.get(test_id)
+    except ValueError as e:
+        raise HTTP_Value_Exception(e.args)
+    
+    await websocket.accept()
+    tmp = None
+    while True:
+        test_info = test.get_uczestnicy_response()
+        try:
+            if not test.zamkniety:
+                if tmp is None:
+                    tmp = test_info
+                if tmp != test_info:
+                    await websocket.send_json([uczestnik.model_dump() for uczestnik in test_info])
+                    tmp = test_info
+            else:
+                break
+        except WebSocketDisconnect:
+            pass
+        await asyncio.sleep(1)
+    await websocket.close()        
 #?: Dodać usuwanie testu
