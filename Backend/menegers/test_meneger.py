@@ -3,7 +3,7 @@ from uuid import uuid4
 
 # Lokalne pliki
 from datamodel import (ID_Odp_t, ID_Pytanie_t, TestStworzonyResponse, UUID_Test_t, Odp_Klucz_t, Odp_t)
-from entitys.file_entity import Plik
+from entitys.file_entity import PlikEncDecCSV
 from entitys.test_entity import Test
 from entitys.question_entity import Pytanie
 
@@ -26,9 +26,9 @@ class TestMenadzer:
         self.slownik_testow[test.ID] = test
         
     def get(self, ID: UUID_Test_t) -> Test:
-        test: Test = self.slownik_testow.get(ID)
-        
-        if not test:
+        try:
+            test: Test = self.slownik_testow[ID]
+        except KeyError:
             raise ValueError("Nie znaleniono testu",
                              f"ID: {ID}")
         
@@ -37,13 +37,21 @@ class TestMenadzer:
     def dostepne_testy(self, zamkniete: bool) -> list[TestStworzonyResponse]:
         return [TestStworzonyResponse(test_id=test_id) for test_id, test in self.slownik_testow.items() if not test.zamkniety or zamkniete]
     
-    def stworz_test(self, pytania_na_arkusz: int, plik: Plik) -> UUID_Test_t:
+    def stworz_test(self, pytania_na_arkusz: int, plik: PlikEncDecCSV) -> UUID_Test_t:
         test_ID: UUID_Test_t = uuid4().hex
         pytania: dict[ID_Pytanie_t, Pytanie] = {}
         klucz_odp: Odp_Klucz_t = {}
         
         for tresc, *odpowiedzi in plik.decode():
             pytanie_ID: ID_Pytanie_t = len(pytania) + 1
+            
+            if len(odpowiedzi) != 4:
+                raise ValueError("Niepoprawna ilość odpowiedzi w pytaniu",
+                                 f"ID pytania: {pytanie_ID}",
+                                 f"Treść pytania: {tresc}",
+                                 f"Ilość odpowiedzi: {len(odpowiedzi)}",
+                                 "Oczekiwano 4 odpowiedzi")
+            
             odpowiedz_praw: Odp_t = odpowiedzi[self.POPRAWNA_ODP]
             pytanie = Pytanie(ID=pytanie_ID, tresc=tresc, odp=odpowiedzi, odp_praw=odpowiedz_praw)
             

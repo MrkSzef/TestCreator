@@ -1,16 +1,16 @@
-import asyncio
-import json
-from typing import Annotated
+from __future__ import annotations
+from typing import Annotated, cast
 from fastapi import APIRouter, Body, Path, UploadFile, WebSocket, WebSocketDisconnect, status, File
-
+from asyncio import Queue
+from pydantic import BaseModel
 
 # Pliki lokalne
 from datamodel import TestInfoResponse, TestStworzonyResponse, UUID_Test_t, UczenWynikResponse
 from httperror import HTTP_Value_Exception
-# from entitys.watcher_entity import ObserwatorWynikow
-from menegers.file_meneger import Plik, PlikMenadzer
-from menegers.test_meneger import TEST_MENADZER, Test
-
+from entitys.test_entity import Test
+from entitys.callback_entity import InfoCallback, WynikCallback
+from menegers.file_meneger import PlikMenadzer, PlikEncDecCSV
+from menegers.test_meneger import TEST_MENADZER
 
 
 ROUTER_NAUCZYCZIEL = APIRouter()
@@ -21,7 +21,7 @@ ROUTER_NAUCZYCZIEL = APIRouter()
              \nW tym rózwnież zamkniete testy",
          status_code=status.HTTP_200_OK,
          response_model=list[TestStworzonyResponse])
-def test_wszystkie():
+def test_wszystkie() -> list[TestStworzonyResponse]:
     #TODO: Do poprawy
     return TEST_MENADZER.dostepne_testy(zamkniete=True)
 
@@ -39,12 +39,13 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
                                                   ge=1)], 
                 plik_csv: Annotated[UploadFile, File(title="Plik csv", 
                                                      description="Plik z pytaniami w formacie csv")],
-                plik_zapisac: Annotated[bool, Body(title="Plik zapisac", 
+                plik_zapisac: Annotated[bool | None, Body(title="Plik zapisac", 
                                                    description="Wartość deczydującza czy plik zostanie zapisany na serwerze")] = None):
     try:
         with PlikMenadzer() as PM:
-            plik_csv: Plik = PM.UploadFile(plik_csv, zapisac=plik_zapisac if plik_zapisac else False)
-            test_id: UUID_Test_t = TEST_MENADZER.stworz_test(liczba_pytan, plik_csv)
+            plik: PlikEncDecCSV = PM.stworz(plik_csv.file, plik_nazwa=plik_csv.filename, 
+                                            zapisac=bool(plik_zapisac) if None not in (plik_zapisac, plik_csv.filename) else False)
+            test_id: UUID_Test_t = TEST_MENADZER.stworz_test(liczba_pytan, plik)
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
     
@@ -59,7 +60,7 @@ def test_stworz(liczba_pytan: Annotated[int, Body(title="Liczba pytanń",
 def test_info(test_id: Annotated[UUID_Test_t, Path()]) -> TestInfoResponse:
     try: 
         test: Test = TEST_MENADZER.get(test_id)
-        return test.info()
+        return test.info
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
 
@@ -71,7 +72,7 @@ def test_info(test_id: Annotated[UUID_Test_t, Path()]) -> TestInfoResponse:
 def test_wyniki(test_id: Annotated[UUID_Test_t, Path()]) -> list[UczenWynikResponse]:
     try:
         test: Test = TEST_MENADZER.get(test_id)
-        return test.get_uczestnicy_response()
+        return test.wyniki
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
 
@@ -90,53 +91,43 @@ def test_zamknij(test_id: Annotated[UUID_Test_t, Path()]) -> list[UczenWynikResp
 
 #TODO: Do poprawy
 @ROUTER_NAUCZYCZIEL.websocket("/test/{test_id}/info/ws")
-async def test(test_id: UUID_Test_t, websocket: WebSocket):
+async def test_info_ws(test_id: UUID_Test_t, websocket: WebSocket):
     try:
         test: Test = TEST_MENADZER.get(test_id)
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
     
     await websocket.accept()
-    tmp = None
-    while True:
-        test_info = test.info()
-        try:
-            if not test.zamkniety:
-                if tmp is None:
-                    tmp = test_info
-                if tmp != test_info:
-                    await websocket.send_json(test_info.model_dump())
-                    tmp = test_info
-            else:
-                break
-        except WebSocketDisconnect:
-            pass
-        await asyncio.sleep(1)
-    await websocket.close()        
+    que: Queue = Queue(maxsize=5)
+    test_info_callback: InfoCallback = InfoCallback(que=que)
+    test.callbackRegister.subskrybuj(test_info_callback)
+    try:
+        while True:
+            test_info: TestInfoResponse = cast(TestInfoResponse, await que.get())
+            await websocket.send_json(test_info.model_dump())
+    except WebSocketDisconnect:
+        print(f"WebSocket powiazany z testem: {test_id} \nzostał rozłączony")
+    finally:
+        await websocket.close()        
+        test.callbackRegister.odsubskrybuj(test_info_callback)
 
 #TODO: Do poprawy
 @ROUTER_NAUCZYCZIEL.websocket("/test/{test_id}/wyniki/ws")
-async def test(test_id: UUID_Test_t, websocket: WebSocket):
+async def test_wyniki_ws(test_id: UUID_Test_t, websocket: WebSocket):
     try:
         test: Test = TEST_MENADZER.get(test_id)
     except ValueError as e:
         raise HTTP_Value_Exception(e.args)
     
     await websocket.accept()
-    tmp = None
-    while True:
-        test_info = test.get_uczestnicy_response()
-        try:
-            if not test.zamkniety:
-                if tmp is None:
-                    tmp = test_info
-                if tmp != test_info:
-                    await websocket.send_json([uczestnik.model_dump() for uczestnik in test_info])
-                    tmp = test_info
-            else:
-                break
-        except WebSocketDisconnect:
-            pass
-        await asyncio.sleep(1)
-    await websocket.close()        
+    que: Queue = Queue(maxsize=5)
+    test_wuniki_callback: WynikCallback = WynikCallback(que=que)
+    test.callbackRegister.subskrybuj(test_wuniki_callback)
+    try:
+        while True:
+            test_wyniki: list[UczenWynikResponse] = cast(list[UczenWynikResponse], await que.get())
+            await websocket.send_json([cast(BaseModel, model).model_dump() for model in test_wyniki])
+    finally:
+        await websocket.close()        
+        test.callbackRegister.odsubskrybuj(test_wuniki_callback)
 #?: Dodać usuwanie testu

@@ -47,6 +47,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class FastApiTags(Enum):
     NAUCZYCIEL = "Nauczyciel"
     UCZEN = "Uczeń"
+    PLIKI = "Pliki"
     
 # 2.0.0 - Typy danych
 # 2.1.0 - UUID
