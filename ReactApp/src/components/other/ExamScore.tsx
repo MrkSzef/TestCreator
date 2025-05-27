@@ -13,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { useNavigate } from "react-router";
 
 export default function ExamScore(Params: {
     OpenDialog: boolean;
@@ -22,6 +23,7 @@ export default function ExamScore(Params: {
         odpowiedzi: { [ID: string]: string };
     };
 }) {
+    const navigate = useNavigate();
     const PytaniaID = Object.keys(Params.TestData.odpowiedzi);
     const Tresc = Params.TestData.pytania.reduce((acc, item) => {
         acc[item.ID] = item.tresc;
@@ -29,7 +31,7 @@ export default function ExamScore(Params: {
     }, {} as { [key: string]: string });
 
     return (
-        <Dialog open={Params.OpenDialog}  onOpenChange={() => {console.log("test1")}}>
+        <Dialog open={Params.OpenDialog}  onOpenChange={() => {navigate("/")}}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Wyniki Testu</DialogTitle>

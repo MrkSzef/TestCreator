@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "../ui/button";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import test from "node:test";
 
 function ZamknijTestApiCall(id: string | undefined) {
     axios
@@ -17,6 +18,8 @@ function ZamknijTestApiCall(id: string | undefined) {
 export default function ZamknijTest(Params: { testId: string | undefined }) {
     return (
         <div>
+            <p>Test Join id: {Params.testId}</p>
+
             <Button
                 disabled={Params.testId === undefined}
                 onClick={() => ZamknijTestApiCall(Params.testId)}
