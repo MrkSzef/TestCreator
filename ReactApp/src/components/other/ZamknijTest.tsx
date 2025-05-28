@@ -2,7 +2,14 @@ import React from "react";
 import { Button } from "../ui/button";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import test from "node:test";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 
 function ZamknijTestApiCall(id: string | undefined) {
     axios
@@ -17,15 +24,27 @@ function ZamknijTestApiCall(id: string | undefined) {
 
 export default function ZamknijTest(Params: { testId: string | undefined }) {
     return (
-        <div>
-            <p>Test Join id: {Params.testId}</p>
+        <Card>
+            <CardHeader>
+                <CardTitle>Test {Params.testId}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-row justify-around">
+                <Button
+                    disabled={Params.testId === undefined}
+                    onClick={() => ZamknijTestApiCall(Params.testId)}
+                >
+                    Zamknij test
+                </Button>
 
-            <Button
-                disabled={Params.testId === undefined}
-                onClick={() => ZamknijTestApiCall(Params.testId)}
-            >
-                Zamknij test
-            </Button>
-        </div>
+                <Button
+                    variant="secondary"
+                    onClick={() =>
+                        navigator.clipboard.writeText(Params.testId!)
+                    }
+                >
+                    Kopiuj Kod Testu
+                </Button>
+            </CardContent>
+        </Card>
     );
 }
