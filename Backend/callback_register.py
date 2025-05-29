@@ -1,6 +1,6 @@
 from __future__ import annotations
-from typing import Any
 
+from datamodel import CallbackMessageType, TestInfoResponse
 from entitys.callback_entity import CallbackEntity
 
 class CallbackRegister:
@@ -20,10 +20,21 @@ class CallbackRegister:
     def odsubskrybuj(self, callback: CallbackEntity) -> None:
         if callback in self._callbacks:
             self._callbacks.remove(callback)
+        else:
+            print(f"Callback {callback} nie jest subskrybowany.")
             
-    def powiadom(self, *args: Any, **kwargs: Any) -> None:
+    def wyczysc(self) -> None:
+        self._callbacks.clear()
+            
+    def powiadom(self, typ: CallbackMessageType , test_info: TestInfoResponse) -> None:
         for callback in self._callbacks:
-            try:
-                callback(*args, **kwargs)
-            except Exception as e:
-                print(f"Błąd podczas wywoływania callbacka: {e}")
+            if isinstance(callback, CallbackEntity):
+                try:
+                    callback(typ, test_info)
+                except Exception as e:
+                    print(f"Błąd podczas wywoływania callbacka {callback}: {e}")
+            else:
+                print(f"Nieprawidłowy callback: {callback}")
+            
+        
+        

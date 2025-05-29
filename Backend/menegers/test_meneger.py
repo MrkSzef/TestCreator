@@ -69,4 +69,14 @@ class TestMenadzer:
         
         return test_ID   
  
+    def usun_test(self, ID: UUID_Test_t) -> None:
+        try:
+            test: Test = self.slownik_testow[ID]
+            del self.slownik_testow[ID]
+            test.usun()
+            del test
+        except KeyError:
+            raise ValueError("Nie znaleniono testu do usunięcia",
+                             f"ID: {ID}")
+ 
 TEST_MENADZER: TestMenadzer = TestMenadzer()

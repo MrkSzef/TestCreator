@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 """
     1.0.0 - Enumy
         1.1.0 - FastApiTags
+        1.2.0 - CallbackMessageType
     
     2.0.0 - typów danych
         2.1.0 - UUID
@@ -22,10 +23,12 @@ from pydantic import BaseModel, ConfigDict, Field
             2.3.6 - Odp_Uczen_t
         2.4.0 - Pytania
         2.5.0 - Informacja o użtkowniku
-            2.4.1 - Imie_t
-            2.4.2 - Nazwisko_t
-        2.5.0 - Test
-            2.5.1 - Test_Status_t           
+            2.5.1 - Imie_t
+            2.5.2 - Nazwisko_t
+        2.6.0 - Test
+            2.6.1 - Test_Status_t           
+        2.7.0 - Pliki
+            2.7.1 - Plik_Nazwa_t
         
     3.0.0 - Modele odpowiedzi
         3.1.0 - Pytanie
@@ -48,6 +51,11 @@ class FastApiTags(Enum):
     NAUCZYCIEL = "Nauczyciel"
     UCZEN = "Uczeń"
     PLIKI = "Pliki"
+    
+# 1.2.0 - CallbackMessageType
+class CallbackMessageType(Enum):
+    DELETE = "Delete"
+    UPDATE = "Update"
     
 # 2.0.0 - Typy danych
 # 2.1.0 - UUID
@@ -72,16 +80,21 @@ Pytania_lista_t = Annotated[list[ID_Pytanie_t], Field(title="Lista pytan")]
 # 2.5.0 Informacje o uztkoniku
 __podstawowa_skladnia = Annotated[str, Field(min_length=3,
                                                   max_length=51,
-                                                  pattern="^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$")]
+                                                  pattern=r"^[A-ZĘÓĄŚŁŻŹĆŃ][a-zęóąśłżźćń]*$")]
 imie_t = Annotated[__podstawowa_skladnia, Field(title="Imie", description="Imie osoby", examples=["Stefan", "Marta"])]
 nazwisko_t = Annotated[__podstawowa_skladnia, Field(title="Nazwisko", description="Nazwiskow osoby", examples=["Stanowski", "Nieśmiałek"])]
 
-# 2.5.0 Test
-# 2.5.1 TestStatus_t
+# 2.6.0 Test
+# 2.6.1 TestStatus_t
 Test_Status_t = Annotated[bool, Field(title="Status testu", description="Wartoś określającza czy test jest otwary czy zamkniety.\
 \n\tOtwary - Można udzielać odpowiedz\
 \n\tZamkniety - Test już się zakończył i niemożna udzielać odpowiedzi",
 examples=[f"{False} - Test otwarty", f"{True} - Test zamknięty"])]
+
+# 2.7.0 Pliki
+# 2.7.1 Plik_Nazwa_t
+Plik_Nazwa_t = Annotated[str, Field(title="Nazwa pliku", description="Nazwa pliku", examples=["plik.csv", "test.csv"], 
+                                    pattern=r"^[a-zA-Z0-9_ ]+\.csv$")]
 
 # 3.0.0 - Modele odpowiedzi
 CONFIG_DICT = ConfigDict(frozen=True)
