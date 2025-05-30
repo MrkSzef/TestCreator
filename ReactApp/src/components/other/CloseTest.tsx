@@ -1,12 +1,9 @@
-import React from "react";
 import { Button } from "../ui/button";
-import { useState, useEffect } from "react";
 import axios from "axios";
 import {
     Card,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
@@ -26,9 +23,10 @@ export default function ZamknijTest(Params: { testId: string | undefined }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Test {Params.testId}</CardTitle>
+                <CardTitle>Test</CardTitle>
+                <CardDescription>{Params.testId}</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-row justify-around">
+            <CardContent className="flex flex-row justify-around gap-4">
                 <Button
                     disabled={Params.testId === undefined}
                     onClick={() => ZamknijTestApiCall(Params.testId)}
