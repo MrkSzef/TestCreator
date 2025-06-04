@@ -22,6 +22,7 @@ pip install "fastapi[standard]"
 ```
 
 React
+
 Należy przejść do katalogu **`ReactApp`** a nastepnie wykonać polecenie
 ```sh
 npm install
