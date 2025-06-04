@@ -11,6 +11,18 @@
 
 Podstawowa aplikacja webowa zawierającza narzędzia do tworzenia i przeprowadzania test online
 
+### Nauczyciel
+
+Nauczyciel tworzy test na stronie internetowej, przesyłając plik z pytaniami w formacie CSV oraz określając liczbę pytań, które mają znaleźć się w teście.
+Po utworzeniu testu generowany jest unikalny kod, który nauczyciel przekazuje uczniom.
+W trakcie trwania testu, nauczyciel na bieżąco widzi wyniki uczniów.
+Po zakończeniu testu, nauczyciel klika przycisk zamykający test, co uniemożliwia dalsze udzielanie odpowiedzi.
+
+### Uczeń 
+
+Uczeń otrzymuje od nauczyciela unikalny kod testu, który umożliwia mu dostęp do losowo wygenerowanego arkusza z pytaniami.
+Po udzieleniu odpowiedzi, uczeń otrzymuje informację o wyniku oraz numery pytań, w których popełnił błąd.
+
 ## Instalacja potrzebnych bibliotek
 
 - Python - [pobierz](https://www.python.org/downloads/release/python-3126/)
