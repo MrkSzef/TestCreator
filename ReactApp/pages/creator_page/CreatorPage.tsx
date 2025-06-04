@@ -5,7 +5,7 @@ import DeleteTest from "@/components/other/DeleteTest";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import "@/styles/globals.css";
-import WavyText from "@/components/other/WavyText/WavyTest";
+import TestNotFound from "@/components/other/TestNotFound/TestNotFound";
 
 export default function CreatorPage() {
     const { id } = useParams();
@@ -31,7 +31,7 @@ export default function CreatorPage() {
                     <DeleteTest testId={id!}></DeleteTest>
                 </>
             ) : (
-                <WavyText></WavyText>
+                <TestNotFound></TestNotFound>
             )}
         </div>
     );
