@@ -45,6 +45,6 @@ start sciezka_do_interpretera_python\python.exe App.py
 Drugie znajdując się w folderze **`ReactApp`**
 
 ```sh
-npm run dev
+start npm run dev
 ```
 
